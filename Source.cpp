@@ -1,110 +1,119 @@
 #include <iostream>
+#include <fstream>
 #include <string>
+#include <iomanip>
 
 using namespace std;
+
+bool isLeapYear(int year);
+int daysInMonth(int month, int year);
+int dayOfWeek(int month, int day, int year);
+void displayCalendar(int month, int year, const string& monthName);
+void printCalendarToFile(int month, int year, const string& monthName);
+
+bool isLeapYear(int year) {
+    // Leap year if divisible by 4 but not divisible by 100, or if divisible by 400
+    return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
+}
+
+int daysInMonth(int month, int year) {
+    // Array to store days in each month
+    int days[13] = { 0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+    // Adjust February days if it's a leap year
+    if (month == 2 && isLeapYear(year))
+        return 29;
+    return days[month];
+}
 
 int dayOfWeek(int month, int day, int year) {
     if (month < 3) {
         month += 12;
         year -= 1;
     }
-    int Y = year % 100;
-    int C = year / 100;
-
-    int m = month;
-    int q = day;
-
-    int h = (q + (13 * (m + 1)) / 5 + Y + Y / 4 + C / 4 - 2 * C) % 7;
-
-    // Adjusting the result to match the expected output
-    return (h + 5) % 7;
+    int h = -1 + ((day + (26 * (month + 1)) / 10 + year + (year / 4) + (6 * (year / 100)) + year / 400)) % 7;
+    return h;
 }
 
-void displayCalendar(int month, int year) {
-    // Define the calendar for each month
-    string calendar[] = {
-        " 1  2  3  4  5  6  7 ",
-        " 8  9 10 11 12 13 14 ",
-        "15 16 17 18 19 20 21 ",
-        "22 23 24 25 26 27 28 "
-    };
-
-    // Determine the number of days in the month
-    int days = (month == 2 && (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0))) ? 29 :
-        (month == 2 ? 28 : (month == 4 || month == 6 || month == 9 || month == 11 ? 30 : 31));
-
-    // Determine the day of the week for the first day of the month
+void displayCalendar(int month, int year, const string& monthName) {
+    // Determine the first day of the month
     int firstDay = dayOfWeek(month, 1, year);
 
-    cout << "  Mo  Tu  We  Th  Fr  Sa  Su" << endl;
+    // Display calendar header
+    cout << monthName << " " << year << endl;
+    cout << "Su Mo Tu We Th Fr Sa" << endl;
 
-    int day = 1;
-    for (int i = 0; i < 5; ++i) {
-        string line = calendar[i];
-        for (int j = 0; j < 21; j += 3) {
-            if (i == 0 && j / 3 < firstDay) {
-                cout << "     ";
-            }
-            else if (day <= days) {
-                cout << (day < 10 ? "  " : " ") << day++ << "  ";
-            }
-            else {
-                break;
-            }
-        }
-        cout << endl;
+    // Print spaces for the first week until the first day
+    for (int i = 0; i < firstDay; ++i)
+        cout << "   ";
+
+    // Print days of the month
+    int days = daysInMonth(month, year);
+    for (int day = 1; day <= days; ++day) {
+        cout << setw(2) << day << " ";
+        if ((firstDay + day) % 7 == 0 || day == days)
+            cout << endl;
     }
+}
+
+void printCalendarToFile(int month, int year, const string& monthName) {
+    // Determine the first day of the month
+    int firstDay = dayOfWeek(month, 1, year);
+
+    // Create output file
+    string filename = monthName.substr(0, 3) + to_string(year) + ".txt";
+    ofstream outfile(filename);
+
+    // Print to file
+    outfile << monthName << " " << year << endl;
+    outfile << "Su Mo Tu We Th Fr Sa" << endl;
+
+    // Print spaces for the first week until the first day
+    for (int i = 1; i < firstDay; ++i)
+        outfile << "   ";
+
+    // Print days of the month
+    int days = daysInMonth(month, year);
+    for (int day = 0; day <= days; ++day) {
+        outfile << setw(2) << day << " ";
+        if ((firstDay + day) % 7 == 0 || day == days)
+            outfile << endl;
+    }
+
+    // Close file
+    outfile.close();
 }
 
 int main() {
-    string input;
-    int month, year;
+    string monthNames[] = { "January", "February", "March", "April", "May", "June",
+                           "July", "August", "September", "October", "November", "December" };
 
-    cout << "Enter a month and year or Q to quit: ";
-    while (cin >> input) {
+    char choice;
+    do {
+        cout << "Enter a month and year (e.g., January 2024) or Q to quit: ";
+        string input;
+        getline(cin, input);
         if (input == "Q" || input == "q")
             break;
 
-        try {
-            month = stoi(input);
-            cin >> year;
-
-            if (month < 1 || month > 12) {
-                cout << "Invalid month. Month must be in the range [1..12]." << endl;
-                cout << "Enter a month and year or Q to quit: ";
-                continue;
+        int month = -1, year = -1;
+        for (int i = 0; i < 12; ++i) {
+            if (input.find(monthNames[i]) != string::npos) {
+                month = i + 1;
+                input.erase(input.find(monthNames[i]), monthNames[i].length());
+                break;
             }
-
-            if (year < 1582) {
-                cout << "Year must be greater than or equal to 1582." << endl;
-                cout << "Enter a month and year or Q to quit: ";
-                continue;
-            }
-
-            cout << endl;
-            switch (month) {
-            case 1: cout << "January"; break;
-            case 2: cout << "February"; break;
-            case 3: cout << "March"; break;
-            case 4: cout << "April"; break;
-            case 5: cout << "May"; break;
-            case 6: cout << "June"; break;
-            case 7: cout << "July"; break;
-            case 8: cout << "August"; break;
-            case 9: cout << "September"; break;
-            case 10: cout << "October"; break;
-            case 11: cout << "November"; break;
-            case 12: cout << "December"; break;
-            }
-            cout << " " << year << endl;
-            displayCalendar(month, year);
         }
-        catch (invalid_argument&) {
-            cout << "Invalid input. Please enter a valid month and year or Q to quit." << endl;
+        year = stoi(input);
+
+        if (month != -1 && year != -1) {
+            displayCalendar(month, year, monthNames[month - 1]);
+            printCalendarToFile(month, year, monthNames[month - 1]);
+        }
+        else {
+            cout << "Invalid input. Please try again." << endl;
         }
 
-        cout << "Enter a month and year or Q to quit: ";
-    }
+    } while (true);
 
     return 0;
 }
